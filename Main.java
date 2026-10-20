@@ -14,7 +14,7 @@ public class Main {
     static Random rand = new Random();
     static int n; // domains
     static int m; // files
-    static int task=2;
+    static int task=3;
     //task variable for now until we set up the command line
     static List<List<AccessEntry>> accessLists;
     // Stores a list containing all the object access lists for task2.
@@ -32,6 +32,23 @@ public class Main {
             //makes the domain and permissions at the beginning of each accessentry
         }
     }
+    // Begin Task 3
+
+    static List<List<CapabilityEntry>> capabilityLists;
+
+    // Each entry represents an object that a domain can access
+    static class CapabilityEntry {
+
+        final int object;
+        final String permission;
+
+        CapabilityEntry(int object, String permission) {
+            this.object = object;
+            this.permission = permission;
+        }
+    }
+
+    // End Task 3 code changes
     static String[][] matrix;
     static String[] files;
     static Semaphore[] fileLocks;
@@ -56,9 +73,14 @@ public class Main {
         if (task == 1) {
             makeMatrix();
             printMatrix();
-        } else {
+        }
+        else if (task == 2) {
             makeAccessLists();
             printAccessLists();
+        }
+        else if (task == 3) {
+            makeCapabilityLists();
+            printCapabilityLists();
         }
 
 
@@ -135,6 +157,71 @@ public class Main {
             }
         }
     }
+    // Begin Task 3
+
+    static void makeCapabilityLists() {
+
+        capabilityLists = new ArrayList<>();
+
+        // Create one capability list for each domain
+        for (int d = 0; d < n; d++) {
+            capabilityLists.add(new ArrayList<>());
+        }
+
+        // Go through each domain
+        for (int d = 0; d < n; d++) {
+
+            // Go through every file and domain object
+            for (int col = 0; col < m + n; col++) {
+
+                if (col < m) {
+
+                    // File object permissions
+                    int r = rand.nextInt(4);
+
+                    String permission;
+
+                    if (r == 0) {
+                        permission = "R";
+                    }
+                    else if (r == 1) {
+                        permission = "W";
+                    }
+                    else if (r == 2) {
+                        permission = "R/W";
+                    }
+                    else {
+                        // No permission
+                        continue;
+                    }
+
+                    capabilityLists.get(d).add(
+                            new CapabilityEntry(col, permission)
+                    );
+
+                } else {
+
+                    // Domain object
+                    int targetDomain = col - m;
+
+                    // Cannot switch to the same domain
+                    if (targetDomain == d) {
+                        continue;
+                    }
+
+                    // Randomly allow or deny domain switching
+                    if (rand.nextBoolean()) {
+
+                        capabilityLists.get(d).add(
+                                new CapabilityEntry(col, "allow")
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+// End Task 3
 
     static void makeMatrix() {
         matrix = new String[n][m + n];
@@ -186,6 +273,44 @@ public class Main {
         System.out.println("End of Lists. Below is the lists of requests:" );
         System.out.println();
     }
+    // Begin Task 3 code changes
+
+    static void printCapabilityLists() {
+
+        System.out.println("\nCapability Lists for Domains:");
+
+        // Go through each domain
+        for (int d = 0; d < n; d++) {
+
+            System.out.print("D" + (d + 1) + ": ");
+
+            List<CapabilityEntry> list = capabilityLists.get(d);
+
+            if (list.isEmpty()) {
+
+                System.out.print("(empty)");
+
+            } else {
+
+                // Print all objects this domain can access
+                for (CapabilityEntry entry : list) {
+
+                    System.out.print(
+                            "[" + colName(entry.object)
+                                    + ": " + entry.permission + "] "
+                    );
+                }
+            }
+
+            System.out.println();
+        }
+
+        System.out.println("End of Capability Lists.");
+        System.out.println("Below is the list of requests:");
+        System.out.println();
+    }
+
+    // End Task 3 code changes
     static void printMatrix() {
         System.out.println("\nAccess Matrix:");
 
@@ -214,22 +339,46 @@ public class Main {
     static boolean arbitrator(int t, int d, int col, String request) {
         String perm;
 
+
         if (task == 1) {
-            // Task 1: get permission from the access matrix.
+
+            // Task 1: Access Matrix
             perm = matrix[d][col];
 
-        } else {
-            // Task 2: assume denied unless a matching entry is found.
+        }
+        else if (task == 2) {
+
+            // Task 2: Access Lists for Objects
             perm = "-";
 
-            // Search the requested object's list for the current domain.
             for (AccessEntry entry : accessLists.get(col)) {
+
                 if (entry.domain == d) {
                     perm = entry.permission;
                     break;
                 }
             }
+
         }
+        else if (task == 3) {
+
+            // Task 3: Capability Lists for Domains
+            perm = "-";
+
+            // Search the current domain's capability list
+            for (CapabilityEntry entry : capabilityLists.get(d)) {
+
+                if (entry.object == col) {
+                    perm = entry.permission;
+                    break;
+                }
+            }
+
+        }
+        else {
+            perm = "-";
+        }
+
         System.out.println("[Arbitrator] checking thread " + t + " (D" + (d+1) + ") " + request + " " + colName(col) + ", has: " + perm);
 
         boolean ok = false;
