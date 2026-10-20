@@ -1,6 +1,3 @@
-//right now i have it set up where task int at the top determines which thing is ran.
-//When command line added it will be fixed.
-
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.ArrayList;
@@ -14,8 +11,6 @@ public class Main {
     static Random rand = new Random();
     static int n; // domains
     static int m; // files
-    static int task=3;
-    //task variable for now until we set up the command line
     static List<List<AccessEntry>> accessLists;
     // Stores a list containing all the object access lists for task2.
     // Each inner list holds AccessEntry objects for one file or domain.
@@ -56,12 +51,18 @@ public class Main {
 
     public static void main(String[] args) {
 
+        // Validate arguments before anything is generated or any threads start
+        task = checkArg(args);
+        if (task < 0) {
+            printTasks();
+            return;
+        }
+
         // had nextInt(6) + 2 before, thats actually 2-7. nextInt(5) is 0-4 so +3 = 3-7
         n = rand.nextInt(5) + 3;
         m = rand.nextInt(5) + 3;
         // int randomNum = m * n;  <- dont need this, table is n rows by m+n cols
 
-        System.out.println("N (domains) = " + n + ", M (files) = " + m);
 
         files = new String[m];
         fileLocks = new Semaphore[m];
@@ -70,18 +71,8 @@ public class Main {
             fileLocks[i] = new Semaphore(1);   // 1 permit so only one thread in a file at a time
         }
 
-        if (task == 1) {
-            makeMatrix();
-            printMatrix();
-        }
-        else if (task == 2) {
-            makeAccessLists();
-            printAccessLists();
-        }
-        else if (task == 3) {
-            makeCapabilityLists();
-            printCapabilityLists();
-        }
+        // Must run after n and m are set and before the threads start
+        setupTask();
 
 
         DomainThread[] threads = new DomainThread[n];
@@ -100,6 +91,85 @@ public class Main {
         }
         System.out.println("Done.");
     }
+
+    //Begin Task 4 changes by Cade
+    static int task; // set from the -S command line argument in main
+
+    // Method to check input arguments
+    // Returns -1 if any invalid inputs detected. If valid, returns task number to be run
+    static int checkArg(String[] args) {
+
+        // A task must be selected, error if no arguments
+        if (args.length == 0) {
+            System.out.println("\nError: No arguments given.");
+            return -1;
+        }
+
+        // Check flag, error if not '-S'
+        if (!args[0].equals("-S")) {
+            System.out.println("\nError: " + args[0] + " not a known flag.");
+            return -1;
+        }
+
+        // Error if flag is -S but no task number
+        if (args.length < 2) {
+            System.out.println("\nError: -S requires a value.");
+            return -1;
+        }
+        // Error if flag is -S but too many arguments
+        else if (args.length > 2) {
+            System.out.println("\nError: Too many arguments.");
+            return -1;
+        }
+
+        // Error if task number is an empty string (e.g. -S "")
+        if (args[1].isEmpty()) {
+            System.out.println("\nError: no task number given.");
+            return -1;
+        }
+
+        // Only the exact values 1, 2, or 3 are accepted (rejects " 2", "+1", "01", etc.)
+        switch (args[1]) {
+            case "1": return 1;
+            case "2": return 2;
+            case "3": return 3;
+            default:
+                System.out.println("\nError: '" + args[1] + "' is not valid. Task must be 1, 2, or 3.");
+                return -1;
+        }
+    }
+
+    // Print task options
+    static void printTasks() {
+        System.out.println("\nPlease Choose: -S <task #>\n 1 -> Access Matrix\n " +
+                "2 -> Access List for Objects\n 3 -> Capability List for Domains");
+    }
+
+    // Create and print scheme based on task number
+    static void setupTask() {
+        String[] schemes = {"Access Matrix", "Access List", "Capability List"};
+        System.out.println("Access control scheme: " + schemes[task - 1]);
+        System.out.println("Domain Count: " + n);
+        System.out.println("Object Count: " + m);
+
+        switch (task) {
+            case 1:
+                makeMatrix();
+                printMatrix();
+                break;
+
+            case 2:
+                makeAccessLists();
+                printAccessLists();
+                break;
+
+            case 3:
+                makeCapabilityLists();
+                printCapabilityLists();
+                break;
+        }
+    }
+    //End Task 4 changes by Cade
 
     static void makeAccessLists() {
 
