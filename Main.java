@@ -12,41 +12,30 @@ public class Main {
     static int n; // domains
     static int m; // files
     static List<List<AccessEntry>> accessLists;
-    // Stores a list containing all the object access lists for task2.
-    // Each inner list holds AccessEntry objects for one file or domain.
+    static List<List<CapabilityEntry>> capabilityLists;
+    static String[][] matrix;
+    static String[] files;
+    static Semaphore[] fileLocks;
+
+
     static class AccessEntry {
         final int domain;
         final String permission;
-
-        //making the domain and the permissions for each domain for task2
-        //can be like R,W,R/W,or Allow
-
         AccessEntry(int domain, String permission) {
             this.domain = domain;
             this.permission = permission;
             //makes the domain and permissions at the beginning of each accessentry
         }
     }
-    // Begin Task 3
 
-    static List<List<CapabilityEntry>> capabilityLists;
-
-    // Each entry represents an object that a domain can access
     static class CapabilityEntry {
-
         final int object;
         final String permission;
-
         CapabilityEntry(int object, String permission) {
             this.object = object;
             this.permission = permission;
         }
     }
-
-    // End Task 3 code changes
-    static String[][] matrix;
-    static String[] files;
-    static Semaphore[] fileLocks;
 
 
     public static void main(String[] args) {
@@ -58,24 +47,21 @@ public class Main {
             return;
         }
 
-        // had nextInt(6) + 2 before, thats actually 2-7. nextInt(5) is 0-4 so +3 = 3-7
         n = rand.nextInt(5) + 3;
         m = rand.nextInt(5) + 3;
-        // int randomNum = m * n;  <- dont need this, table is n rows by m+n cols
-
 
         files = new String[m];
-        fileLocks = new Semaphore[m];
+        fileLocks = new Semaphore[m]; // Lock for each file
         for (int i = 0; i < m; i++) {
-            files[i] = "empty";
-            fileLocks[i] = new Semaphore(1);   // 1 permit so only one thread in a file at a time
+            files[i] = "empty"; // Making each empty
+            fileLocks[i] = new Semaphore(1); // Making each contain the 1 lock
         }
 
         // Must run after n and m are set and before the threads start
         setupTask();
 
 
-        DomainThread[] threads = new DomainThread[n];
+        DomainThread[] threads = new DomainThread[n]; // aka users getting started
         for(int i = 0; i < n; i++) {
             threads[i] = new DomainThread(i);
             threads[i].start();
@@ -92,12 +78,9 @@ public class Main {
         System.out.println("Done.");
     }
 
-    //Begin Task 4 changes by Cade
+    //Begin Task 4 changes by Cade -------
     static int task; // set from the -S command line argument in main
-
-    // Method to check input arguments
-    // Returns -1 if any invalid inputs detected. If valid, returns task number to be run
-    static int checkArg(String[] args) {
+    static int checkArg(String[] args) { // Method to check input arguments. Returns -1 if any invalid inputs detected. If valid, returns task number to be run
 
         // A task must be selected, error if no arguments
         if (args.length == 0) {
@@ -169,13 +152,13 @@ public class Main {
                 break;
         }
     }
-    //End Task 4 changes by Cade
+    //End Task 4 changes by Cade -------
 
+
+    // Changes by Zayne - Drayke - JDub ------
     static void makeAccessLists() {
-
         accessLists = new ArrayList<>();
         //create the initial empty outer array list
-
         // Goes through each column (object) (goes from 0 to m+n-1)
         for (int col = 0; col < m + n; col++) {
             //makes an accesslist per object
@@ -227,8 +210,6 @@ public class Main {
             }
         }
     }
-    // Begin Task 3
-
     static void makeCapabilityLists() {
 
         capabilityLists = new ArrayList<>();
@@ -290,18 +271,16 @@ public class Main {
             }
         }
     }
-
-// End Task 3
-
     static void makeMatrix() {
+
         matrix = new String[n][m + n];
 
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < m + n; j++) {
 
-                if (j < m) {
-                    // file column
-                    int r = rand.nextInt(4);
+                if (j < m) { // file column deciding permissions for each file
+                    
+                    int r = rand.nextInt(4); // This random in is what's choosing what permissions each file gets
                     if (r == 0) matrix[i][j] = "R";
                     else if (r == 1) matrix[i][j] = "W";
                     else if (r == 2) matrix[i][j] = "R/W";
@@ -319,6 +298,7 @@ public class Main {
             }
         }
     }
+    
     static void printAccessLists() {
         System.out.println("\nAccess Lists for Objects:");
         //for loop for going through every object and file
@@ -343,8 +323,6 @@ public class Main {
         System.out.println("End of Lists. Below is the lists of requests:" );
         System.out.println();
     }
-    // Begin Task 3 code changes
-
     static void printCapabilityLists() {
 
         System.out.println("\nCapability Lists for Domains:");
@@ -379,8 +357,6 @@ public class Main {
         System.out.println("Below is the list of requests:");
         System.out.println();
     }
-
-    // End Task 3 code changes
     static void printMatrix() {
         System.out.println("\nAccess Matrix:");
 
@@ -405,31 +381,25 @@ public class Main {
         return "D" + (col - m + 1);
     }
 
-
     static boolean arbitrator(int t, int d, int col, String request) {
         String perm;
 
-
         if (task == 1) {
-
             // Task 1: Access Matrix
-            perm = matrix[d][col];
-
+            perm = matrix[d][col];  // Gets the permission from the created matrix
         }
-        else if (task == 2) {
 
+        else if (task == 2) {
             // Task 2: Access Lists for Objects
             perm = "-";
-
             for (AccessEntry entry : accessLists.get(col)) {
-
                 if (entry.domain == d) {
                     perm = entry.permission;
                     break;
                 }
             }
-
         }
+
         else if (task == 3) {
 
             // Task 3: Capability Lists for Domains
@@ -445,21 +415,22 @@ public class Main {
             }
 
         }
+
         else {
             perm = "-";
         }
 
         System.out.println("[Arbitrator] checking thread " + t + " (D" + (d+1) + ") " + request + " " + colName(col) + ", has: " + perm);
 
-        boolean ok = false;
-        if (request.equals("read") && (perm.equals("R") || perm.equals("R/W")))
+        boolean ok = false;  // initially false
+        if (request.equals("read") && (perm.equals("R") || perm.equals("R/W"))) // gotta have one or both
             ok = true;
-        if (request.equals("write") && (perm.equals("W") || perm.equals("R/W")))
+        if (request.equals("write") && (perm.equals("W") || perm.equals("R/W"))) // gotta have one or both
             ok = true;
         if (request.equals("switch to") && perm.equals("allow"))
             ok = true;
 
-        if (ok) {
+        if (ok) {  // allows or denies
             System.out.println("[Arbitrator] thread " + t + " " + request + " " + colName(col) + " -> ALLOWED");
         } else {
             System.out.println("[Arbitrator] thread " + t + " " + request + " " + colName(col) + " -> DENIED");
@@ -467,50 +438,47 @@ public class Main {
         return ok;
     }
 
-    static void yieldRandom(int t) {
+    static void yieldRandom(int t) {  // Simple random yielding to simulate waiting
         int times = rand.nextInt(5) + 3;
         System.out.println("Thread " + t + " yielding " + times + " times");
         for (int i = 0; i < times; i++) Thread.yield();
     }
-
 }
 
-
-
 class DomainThread extends Thread {
-
     int num;     // thread number, never changes
     int domain;  // current domain, changes when it switches
 
     DomainThread(int i) {
-        num = i + 1;
+        num = i + 1; // Thread 0 is shown as thread 1
         domain = i;
     }
 
     public void run() {
         try {
 
-            for (int req = 0; req < 5; req++) {
-                int x = Main.rand.nextInt(Main.m + Main.n);
+            for (int req = 0; req < 5; req++) { // here we go: each thread needs to make 5 requests.
 
-                //cant switch to the domain we're already in so reroll
+                int x = Main.rand.nextInt(Main.m + Main.n);  // pick a random column (file or domain)
+
+                // If the randomly picked column is in the current domain it won't work so we have to reroll
                 while (x == Main.m + domain) {
                     x = Main.rand.nextInt(Main.m + Main.n);
                 }
 
 
-                if (x < Main.m) {
+                if (x < Main.m) { // This is representing a file column
                     int rw = Main.rand.nextInt(2);  // 0 = read, 1 = write
 
-                    if (rw == 0) {
+                    if (rw == 0) { // reading
                         System.out.println("Thread " + num + " (D" + (domain+1) + ") requests read " + Main.colName(x));
 
-                        if (Main.arbitrator(num, domain, x, "read")) {
+                        if (Main.arbitrator(num, domain, x, "read")) { // call to the arbitrator to check the perms!
                             Main.fileLocks[x].acquire();
                             System.out.println("Thread " + num + " locked " + Main.colName(x));
                             System.out.println("Thread " + num + " read " + Main.colName(x) + ": " + Main.files[x]);
 
-                            Main.yieldRandom(num);  // still holding the lock here on purpose
+                            Main.yieldRandom(num);  // waiting waiting waiting as per the instructions
 
                             System.out.println("Thread " + num + " unlocked " + Main.colName(x));
                             Main.fileLocks[x].release();
@@ -518,33 +486,34 @@ class DomainThread extends Thread {
                             Main.yieldRandom(num);
                         }
                     }
-                    else {
+                    else { // writing
                         System.out.println("Thread " + num + " (D" + (domain+1) + ") requests write " + Main.colName(x));
 
-                        if (Main.arbitrator(num, domain, x, "write")) {
-                            Main.fileLocks[x].acquire();
-                            System.out.println("Thread " + num + " locked " + Main.colName(x));
+                        if (Main.arbitrator(num, domain, x, "write")) { // call to the arbitrator to check the perms!
+                            Main.fileLocks[x].acquire();  // Grab de lock
+
+                            System.out.println("Thread " + num + " locked " + Main.colName(x)); 
                             Main.files[x] = "thread " + num + " was here";
                             System.out.println("Thread " + num + " wrote to " + Main.colName(x) + ": " + Main.files[x]);
 
-                            Main.yieldRandom(num);
+                            Main.yieldRandom(num); // waittt!!
 
                             System.out.println("Thread " + num + " unlocked " + Main.colName(x));
                             Main.fileLocks[x].release();
                         } else {
-                            Main.yieldRandom(num);
+                            Main.yieldRandom(num); // ya got denied... now wait and go back.
                         }
                     }
 
-                } else {
-                    int target = x - Main.m;
+                } else { // switching domains
+                    int target = x - Main.m; // this converts the column index to the target domain index
                     System.out.println("Thread " + num + " (D" + (domain+1) + ") requests switch to D" + (target + 1));
 
-                    if (Main.arbitrator(num, domain, x, "switch to")) {
+                    if (Main.arbitrator(num, domain, x, "switch to")) { // Ask the arbitrator if the switch is allowed
                         domain = target;
-                        System.out.println("Thread " + num + " is now in D" + (domain+1));
+                        System.out.println("Thread " + num + " is now in D" + (domain+1)); // 
                     }
-                    Main.yieldRandom(num);
+                    Main.yieldRandom(num); // wait a bit after the switch attempt
                 }
             }
 
@@ -555,5 +524,3 @@ class DomainThread extends Thread {
         }
     }
 }
-
-// End code changes by Drayke.
